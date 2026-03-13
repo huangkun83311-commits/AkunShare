@@ -2,61 +2,34 @@ name: Build AkunShare DEB
 
 on:
   push:
-    branches: [ main ]
-  workflow_dispatch: # 允许手动点击运行
+    branches: [ main, master ]
+  workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
-
     steps:
-    # 1. 下载代码
-    - name: 📥 Checkout Code
-      uses: actions/checkout@v3
+      # 1. 下载你的代码
+      - name: Checkout Repository
+        uses: actions/checkout@v3
 
-    # 2. 配置 Theos 环境 (核心修复部分)
-    - name: 🛠️ Setup Theos Environment
-      run: |
-        echo "🔧 Installing System Dependencies..."
-        sudo apt-get update -y
-        sudo apt-get install -y git clang llvm lldb libncurses5-dev xz-utils libxml2 libxml2-dev binutils-gold libssl-dev perl python3 make curl wget
-        
-        # 🧹【关键步骤】强制彻底删除旧的 theos 目录，防止缓存导致报错
-        echo "🧹 Cleaning any existing Theos installation..."
-        sudo rm -rf $HOME/theos
-        
-        echo "📥 Cloning Fresh Theos..."
-        git clone --recursive --depth=1 https://github.com/theos/theos.git $HOME/theos
-        
-        echo "📥 Downloading iOS SDKs..."
-        # 双重保险：如果 sdks 目录意外存在，先删除再克隆
-        if [ -d "$HOME/theos/sdks" ]; then 
-          echo "Removing old SDKs..."
-          sudo rm -rf $HOME/theos/sdks
-        fi
-        git clone --depth=1 https://github.com/theos/sdks.git $HOME/theos/sdks
-        
-        # 设置环境变量
-        echo "THEOS=$HOME/theos" >> $GITHUB_ENV
-        echo "PATH=$HOME/theos/bin:$PATH" >> $GITHUB_ENV
-        echo "✅ Theos Environment Ready!"
+      # 2. 【关键步骤】安装 Theos 和 Clang 编译器
+      - name: Setup Theos
+        uses: kirb/deploy-theos@master
+        with:
+          version: latest
 
-    # 3. 编译项目
-    - name: 🔨 Build Tweak
-      run: |
-        cd $GITHUB_WORKSPACE
-        echo "🚀 Starting Build Process..."
-        # 确保有执行权限
-        chmod +x ./Makefile || true 
-        make package FINALPACKAGE=1
-        
-        echo "📦 Build Finished. Listing packages:"
-        ls -lh packages/
-
-    # 4. 上传产物
-    - name: 📦 Upload DEB Artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: AkunShare-v1.0-iOS16
-        path: packages/*.deb
-        retention-days: 7
+      # 3. 开始编译
+      - name: Build Package
+        run: |
+          echo "🚀 Starting Build Process..."
+          # 使用 rootless 方案编译，指定 arm64 架构
+          make package THEOS_PACKAGE_SCHEME=rootless ARCHS="arm64"
+          
+      # 4. 上传生成的 .deb 包
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: AkunShare.deb
+          path: packages/*.deb
+          if-no-files-found: error
