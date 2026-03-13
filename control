@@ -1,0 +1,9 @@
+Package: com.akun.share
+Name: AkunShare
+Version: 1.0.0
+Architecture: iphoneos-arm
+Description: UDP Network Wakeup Safari for iOS 16.7.14
+Maintainer: Akun
+Author: Akun
+Section: Tweaks
+Depends: mobilesubstrate (>= 0.9.5000)
