@@ -1,4 +1,5 @@
-TARGET := iphone:clang:16.0:14.0
+# 修改点：将 16.0 改为 latest，以兼容 GitHub Actions 环境
+TARGET := iphone:clang:latest:14.0
 INSTALL_TARGET_PROCESSES = SpringBoard
 
 include $(THEOS)/makefiles/common.mk
